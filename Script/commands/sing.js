@@ -1,116 +1,129 @@
 const axios = require("axios");
-const fs = require('fs')
-const baseApiUrl = async () => {
-  const base = await axios.get(
-`https://raw.githubusercontent.com/Mostakim0978/D1PT0/refs/heads/main/baseApiUrl.json`,
-  );
-  return base.data.api;
-};
+const fs = require("fs-extra");
+const path = require("path");
+const yts = require("yt-search");
+
 module.exports.config = {
-    name: "sing",
-    version: "2.1.0",
-    aliases: [ "music", "play"],
-    credits: "dipto",
-    countDown: 5,
-    hasPermssion: 0,
-    description: "Download audio from YouTube",
-    category: "media",
-    commandCategory: "media",
-    usePrefix: true,
-    prefix: true,
-    usages: "{pn} [<song name>|<song link>]:"+ "\n   Example:"+"\n{pn} chipi chipi chapa chapa"
+  name: "sing",
+  version: "2.5.0",
+  hasPermssion: 0,
+  credits: "Belal x Gemini",
+  description: "ইউটিউব থেকে গান ডাউনলোড করার সেরা সিস্টেম",
+  commandCategory: "Music",
+  usages: "[গানের নাম]",
+  cooldowns: 5,
+  dependencies: {
+    "axios": "",
+    "fs-extra": "",
+    "path": "",
+    "yt-search": ""
   }
-  module.exports.run = async ({api,args, event,commandName, message }) =>{
-    const checkurl = /^(?:https?:\/\/)?(?:m\.|www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))((\w|-){11})(?:\S+)?$/;
-    let videoID;
-    const urlYtb = checkurl.test(args[0]);
-     
-if (urlYtb) {
-  const match = args[0].match(checkurl);
-  videoID = match ? match[1] : null;
-        const { data: { title, downloadLink } } = await axios.get(
-          `${await baseApiUrl()}/ytDl3?link=${videoID}&format=mp3`
-        );
-    return  api.sendMessage({
-      body: title,
-      attachment: await dipto(downloadLink,'audio.mp3')
-    },event.threadID,()=>fs.unlinkSync('audio.mp3'),event.messageID)
-}
-    let keyWord = args.join(" ");
-    keyWord = keyWord.includes("?feature=share") ? keyWord.replace("?feature=share", "") : keyWord;
-    const maxResults = 6;
-    let result;
-    try {
-      result = ((await axios.get(`${await baseApiUrl()}/ytFullSearch?songName=${keyWord}`)).data).slice(0, maxResults);
-    } catch (err) {
-      return api.sendMessage("❌ An error occurred:"+err.message,event.threadID,event.messageID);
+};
+
+// ১. মাল্টি-এপিআই সোর্স (যাতে একটি ডাউন থাকলেও অন্যটি কাজ করে)
+const apiSources = [
+  "https://api.popcat.xyz/play?url=",
+  "https://api.vkrnoob.xyz/api/yt/play?url=",
+  "https://shiron-search-api.onrender.com/api/yt/play?url="
+];
+
+module.exports.run = async function ({ api, event, args }) {
+  const { threadID, messageID, senderID } = event;
+  const cacheDir = path.join(__dirname, "cache");
+  if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+
+  const query = args.join(" ");
+  if (!query) return api.sendMessage("❌ বেলাল ভাই, কোন গানটা শুনবেন? নাম তো লিখলেন না!", threadID, messageID);
+
+  try {
+    api.setMessageReaction("🔍", messageID, () => {}, true);
+    const search = await yts(query);
+    const videos = search.videos.slice(0, 6);
+
+    if (videos.length === 0) return api.sendMessage("❌ দুঃখিত, কোনো গান খুঁজে পাওয়া যায়নি।", threadID, messageID);
+
+    let msg = "🎶 𝐁𝐄𝐋𝐀𝐋 𝐌𝐔𝐒𝐈𝐂 𝐏𝐋𝐀𝐘𝐄𝐑 🎶\n━━━━━━━━━━━━━━━━━━\n";
+    let attachments = [];
+
+    for (let i = 0; i < videos.length; i++) {
+      msg += `${i + 1}. ${videos[i].title}\n⏱ সময়: ${videos[i].timestamp}\n👀 ভিউ: ${videos[i].views.toLocaleString()}\n\n`;
     }
-    if (result.length == 0)
-      return api.sendMessage("⭕ No search results match the keyword:"+ keyWord,event.threadID,event.messageID);
-    let msg = "";
-    let i = 1;
-    const thumbnails = [];
-    for (const info of result) {
-thumbnails.push(diptoSt(info.thumbnail,'photo.jpg'));
-      msg += `${i++}. ${info.title}\nTime: ${info.time}\nChannel: ${info.channel.name}\n\n`;
-    }
-    api.sendMessage({
-      body: msg+ "Reply to this message with a number want to listen",
-      attachment: await Promise.all(thumbnails)
-    },event.threadID, (err, info) => {
-global.client.handleReply.push({
+    msg += "👉 যে গানটি শুনতে চান তার নম্বর দিয়ে রিপ্লাই করুন (১-৬)";
+
+    // থাম্বনেইল হিসেবে প্রথম ভিডিওর ছবি পাঠানো (মেমোরি সেভ করার জন্য)
+    const thumbPath = path.join(cacheDir, `thumb_${senderID}.jpg`);
+    const thumbRes = await axios.get(videos[0].thumbnail, { responseType: "arraybuffer" });
+    fs.writeFileSync(thumbPath, Buffer.from(thumbRes.data));
+
+    return api.sendMessage({
+      body: msg,
+      attachment: fs.createReadStream(thumbPath)
+    }, threadID, (err, info) => {
+      fs.unlinkSync(thumbPath);
+      global.client.handleReply.push({
         name: this.config.name,
         messageID: info.messageID,
-        author: event.senderID,
-        result
+        author: senderID,
+        videos: videos
       });
-    },event.messageID);
-  }
- module.exports.handleReply = async ({ event, api, handleReply }) => {
-    try {
-    const { result } = handleReply;
-    const choice = parseInt(event.body);
-    if (!isNaN(choice) && choice <= result.length && choice > 0) {
-      const infoChoice = result[choice - 1];
-      const idvideo = infoChoice.id;
-  const { data: { title, downloadLink ,quality} } = await axios.get(`${await baseApiUrl()}/ytDl3?link=${idvideo}&format=mp3`);
-    await api.unsendMessage(handleReply.messageID)
-        await  api.sendMessage({
-          body: `• Title: ${title}\n• Quality: ${quality}`,
-          attachment: await dipto(downloadLink,'audio.mp3')
-        },event.threadID ,
-       ()=>fs.unlinkSync('audio.mp3')
-      ,event.messageID)
-    } else {
-      api.sendMessage("Invalid choice. Please enter a number between 1 and 6.",event.threadID,event.messageID);
-    }
-    } catch (error) {
-      console.log(error);
-      api.sendMessage("⭕ Sorry, audio size was less than 26MB",event.threadID,event.messageID)
-    }   
- };
-async function dipto(url,pathName) {
-  try {
-    const response = (await axios.get(url,{
-      responseType: "arraybuffer"
-    })).data;
+    }, messageID);
 
-    fs.writeFileSync(pathName, Buffer.from(response));
-    return fs.createReadStream(pathName);
+  } catch (error) {
+    console.log(error);
+    return api.sendMessage("🚨 সার্চ করতে সমস্যা হয়েছে!", threadID, messageID);
   }
-  catch (err) {
-    throw err;
+};
+
+module.exports.handleReply = async function ({ api, event, handleReply }) {
+  const { threadID, messageID, body, senderID } = event;
+  if (senderID != handleReply.author) return;
+
+  const index = parseInt(body) - 1;
+  if (isNaN(body) || index < 0 || index >= handleReply.videos.length) {
+    return api.sendMessage("❌ সঠিক নম্বর দিয়ে রিপ্লাই করুন (১-৬)।", threadID, messageID);
   }
-}
-async function diptoSt(url,pathName) {
-  try {
-    const response = await axios.get(url,{
-      responseType: "stream"
-    });
-    response.data.path = pathName;
-    return response.data;
+
+  const video = handleReply.videos[index];
+  api.unsendMessage(handleReply.messageID);
+  api.sendMessage(`📥 '${video.title}' গানটি প্রসেস করা হচ্ছে...`, threadID, messageID);
+  api.setMessageReaction("⏳", messageID, () => {}, true);
+
+  const filePath = path.join(__dirname, "cache", `${Date.now()}.mp3`);
+
+  // ডাউনলোড লজিক উইথ ফেলওভার
+  let success = false;
+  for (let source of apiSources) {
+    if (success) break;
+    try {
+      const res = await axios.get(`${source}${encodeURIComponent(video.url)}`);
+      const downloadUrl = res.data.downloadUrl || res.data.url || res.data.link;
+
+      if (downloadUrl) {
+        const audioRes = await axios.get(downloadUrl, { responseType: "arraybuffer" });
+        fs.writeFileSync(filePath, Buffer.from(audioRes.data));
+        
+        // ফাইল সাইজ চেক (২৫ এমবির বেশি হলে মেসেঞ্জারে যাবে না)
+        const stats = fs.statSync(filePath);
+        if (stats.size > 26214400) {
+          fs.unlinkSync(filePath);
+          return api.sendMessage("❌ গানের ফাইলটি অনেক বড় (25MB+), তাই পাঠানো সম্ভব হলো না।", threadID, messageID);
+        }
+
+        success = true;
+        api.setMessageReaction("✅", messageID, () => {}, true);
+        await api.sendMessage({
+          body: `🎵 গান: ${video.title}\n👤 আর্টিস্ট: ${video.author.name}\n🔗 লিঙ্ক: ${video.url}`,
+          attachment: fs.createReadStream(filePath)
+        }, threadID, () => fs.unlinkSync(filePath), messageID);
+      }
+    } catch (e) {
+      console.log(`API Error from ${source}:`, e.message);
+      continue; // পরের এপিআই ট্রাই করবে
+    }
   }
-  catch (err) {
-    throw err;
+
+  if (!success) {
+    return api.sendMessage("🚨 দুঃখিত বেলাল ভাই, সবকটি সার্ভার এখন বিজি। পরে চেষ্টা করুন।", threadID, messageID);
   }
-}
+};
+  
