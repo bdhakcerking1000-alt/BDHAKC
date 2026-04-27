@@ -1,71 +1,58 @@
 const axios = require('axios');
-const fs = require('fs');
+const fs = require('fs-extra');
+const path = require('path');
 
-module.exports = {
-  config: {
+module.exports.config = {
     name: "4k",
-    version: "1.0.0",
-    hasPermssion: 0,
-    credits: "SHAHADAT SAHU", //don't change credit
-    description: "Enhance Photo - Reply with image to upscale",
-    commandCategory: "Image Editing Tools",
-    usages: "Reply to an image",
-    cooldowns: 5
-  },
-
-  handleEvent: async ({ api, event }) => {
-    const { body, messageReply, threadID, messageID } = event;
-    if (body?.toLowerCase().trim() === "4k") {
-      if (!messageReply?.attachments?.length)
-        return api.sendMessage("📸 Please reply to an image!", threadID, messageID);
-
-      await processImage(api, threadID, messageID, messageReply);
-    }
-  },
-
-  run: async ({ api, event }) => {
-    const { threadID, messageID, messageReply } = event;
-    if (!messageReply?.attachments?.length)
-      return api.sendMessage("📸 Reply to an image to enhance!", threadID, messageID);
-
-    await processImage(api, threadID, messageID, messageReply);
-  }
+    version: "2.5.0",
+    credits: "Master Belal",
+    description: "ছবির ব্যাকগ্রাউন্ড রিমুভ, কালার গ্রেডিং এবং ৪কে এনহ্যান্সমেন্ট",
+    usages: "[ছবিতে রিপ্লাই দিন]",
+    commandCategory: "AI Tools",
+    cooldowns: 2
 };
 
-async function processImage(api, threadID, messageID, messageReply) {
-  const tempPath = __dirname + "/cache/4k.jpg";
-  const img = messageReply.attachments[0].url;
+const API_ENDPOINT = "https://free-goat-api.onrender.com/4k";
 
-  try {
-    const configUrl =
-      "https://raw.githubusercontent.com/shahadat-sahu/SAHU-API/refs/heads/main/SAHU-API.json";
+module.exports.run = async function ({ api, event }) {
+    const { threadID, messageID, messageReply } = event;
 
-    const apiConfig = await axios.get(configUrl);
-    const apiUrl = apiConfig.data["4k"];
+    let imageUrl;
+    if (messageReply && messageReply.attachments && messageReply.attachments.length > 0) {
+        imageUrl = messageReply.attachments[0].url;
+    } else {
+        return api.sendMessage("⚠️ দয়া করে একটি ছবিতে রিপ্লাই দিয়ে /4k লিখুন।", threadID, messageID);
+    }
 
-    const wait = await api.sendMessage("⏳ Enhancing your photo in 4K...", threadID);
+    api.setMessageReaction("📸", messageID, () => {}, true);
+    
+    const tempPath = path.join(__dirname, `/cache/4k_ultra_${Date.now()}.png`);
 
-    const enhanceUrl = `${apiUrl}?imageUrl=${encodeURIComponent(img)}`;
-    const res = await axios.get(enhanceUrl);
-    const resultImg = res.data?.result;
+    try {
+        // এনহ্যান্সমেন্ট এবং প্রসেসিং এর জন্য এপিআই কল
+        const res = await axios.get(`${API_ENDPOINT}?url=${encodeURIComponent(imageUrl)}`);
+        const processedUrl = res.data.image;
 
-    if (!resultImg) throw new Error("No result");
+        if (!processedUrl) throw new Error("প্রসেসিং ব্যর্থ হয়েছে!");
 
-    const buffer = (await axios.get(resultImg, { responseType: "arraybuffer" })).data;
-    fs.writeFileSync(tempPath, Buffer.from(buffer, "binary"));
+        const imageRes = await axios.get(processedUrl, { responseType: 'arraybuffer' });
+        fs.writeFileSync(tempPath, Buffer.from(imageRes.data, 'utf-8'));
 
-    api.sendMessage(
-      {
-        body: "✔️ 4K Enhance Successful!",
-        attachment: fs.createReadStream(tempPath)
-      },
-      threadID,
-      () => fs.unlinkSync(tempPath),
-      messageID
-    );
+        api.setMessageReaction("✨", messageID, () => {}, true);
 
-    api.unsendMessage(wait.messageID);
-  } catch (e) {
-    api.sendMessage("❌ API Error! Boss SAHU ke message din!", threadID, messageID);
-  }
-}
+        // একদম আলাদা এবং ক্লিন ডিজাইন
+        const msg = {
+            body: `🌟 𝗨𝗟𝗧𝗥𝗔 𝟰𝗞 𝗘𝗡𝗛𝗔𝗡𝗖𝗘𝗗 🌟\n━━━━━━━━━━━━━━━━━━\n🎨 𝗘𝗳𝗳𝗲𝗰𝘁: Color Grading + HD\n🛠 𝗣𝗿𝗼𝗰𝗲𝘀𝘀: AI Deep Learning\n🌈 𝗕𝗮𝗰𝗸𝗴𝗿𝗼𝘂𝗻𝗱: Optimized\n━━━━━━━━━━━━━━━━━━`,
+            attachment: fs.createReadStream(tempPath)
+        };
+
+        return api.sendMessage(msg, threadID, () => {
+            if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+        }, messageID);
+
+    } catch (err) {
+        api.setMessageReaction("❌", messageID, () => {}, true);
+        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+        return api.sendMessage("🚫 সার্ভার ত্রুটি! ছবি প্রসেস করা সম্ভব হচ্ছে না API Stor Brlal YT।", threadID, messageID);
+    }
+};
