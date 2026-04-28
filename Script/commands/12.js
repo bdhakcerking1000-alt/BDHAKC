@@ -1,106 +1,75 @@
 const schedule = require('node-schedule');
+const axios = require('axios');
 const moment = require('moment-timezone');
 
 module.exports.config = {
   name: "autosent",
-  version: "61.0.0",
-  hasPermssion: 0,
+  version: "64.0.0",
+  hasPermssion: 2,
   credits: "Master Belal",
-  description: "৫০০+ মেগা ক্যাপশন সমৃদ্ধ সাইবার অটো-সেন্ট ড্যাশবোর্ড",
+  description: "Auto-Caption with Real-time Roumari Weather Engine",
   commandCategory: "System",
   usages: "autosent",
   cooldowns: 5
 };
 
-// 🎭 ৫০০+ ক্যাপশন ডাটাবেস জেনারেটর (স্মার্ট লজিক)
-const getPremiumCaption = () => {
-  const funny = [
-    "বিয়ে করার ইচ্ছাটা দিন দিন এতোই বাড়ছে যে এখন আয়নার সামনে দাঁড়ালে নিজেকেই নিজের জামাই মনে হয়! কেউ কি আছেন এই অভাগাকে উদ্ধার করবেন? 😂",
-    "ফেসবুকে সিঙ্গেল স্ট্যাটাস দিয়ে মনে মনে ১০-১২ জনের সাথে সংসার করা মানুষগুলোই একদিন এই দেশ পরিচালনা করবে, আমি নিশ্চিত! 🤣",
-    "গার্লফ্রেন্ড থাকা আর এলিয়েন দেখা একদম এক কথা! সবাই বলে আছে, কিন্তু আজ পর্যন্ত কেউ স্বচক্ষে দেখতে পারলো না! আমার কপালটাই এমন! 👽",
-    "পড়াশোনা করলেই নাকি রেজাল্ট খারাপ হয়, তাই আমি সিদ্ধান্ত নিয়েছি পড়াশোনাকে তালাক দিয়ে সারাজীবন বটের সাথে প্রেম করবো! এটা অনেক শান্তির! 😎",
-    "আমার গার্লফ্রেন্ড আমাকে বলছে 'আমি তোমাকে ছাড়া বাঁচবো না', অথচ আজ ৩ বছর হলো আমাদের ব্রেকআপ হয়েছে কিন্তু মেয়েটা দিব্যি বেঁচে আছে আর প্রতিদিন বিরিয়ানি খাচ্ছে! 🤥",
-    "টাকা নাই তাতে কি? পকেটে হাত দিলে তো নিজের হাতই পাওয়া যায়! এই ডিজিটাল যুগে এর চেয়ে বড় পাওনা আর কি হতে পারে? 💸",
-    "মানুষ বলে 'প্রেমে পড়লে মানুষ অন্ধ হয়', আমি তো প্রেমে পড়ে এখন দেউলিয়া হয়ে গেছি! চোখের চশমা কেনার টাকাও নেই! 🤓"
-  ];
+// ৫টি ভিন্ন ভিন্ন ডাইনামিক আর্ট লেআউট
+const getLayout = (caption, time, date, day, weather) => {
+  const layouts = [
+    `💠 ━━━ ❮ 𝐄𝐋𝐈𝐓𝐄 𝐍𝐄𝐓𝐖𝐎𝐑𝐊 ❯ ━━━ 💠\n\n📜 "${caption}"\n\n🌍 𝐋𝐨𝐜𝐚𝐭𝐢𝐨𝐧: Roumari, Kurigram\n🌡️ 𝐓𝐞𝐦𝐩: ${weather}\n\n◈━━━━━━━━━━━━━━━━━━━◈\n⌚ 𝐓𝐢𝐦𝐞 : ${time}\n📅 𝐃𝐚𝐭𝐞 : ${date} (${day})\n◈━━━━━━━━━━━━━━━━━━━◈\n┈──╼ ❈✡️চৃাঁদেৃঁরৃঁ পাৃঁহা্ঁড়ৃঁ🪬❈ ╾──┈`,
 
-  const sad = [
-    "হাসিটা আমার মুখেই মানায় খুব, কিন্তু এই হাসির আড়ালে যে কত হাজার রাত আমি নিঃশব্দে কেঁদেছি সেটা কেবল আমার বালিশ আর উপরের মালিক জানেন। 💔",
-    "মায়া বাড়ানো অনেক সহজ কিন্তু সেই মায়া কাটিয়ে ওঠা পৃথিবীর সবচেয়ে কঠিন কাজ। কিছু মানুষ শুধু স্মৃতি হয়েই কলিজার কোণায় থেকে যায়, বাস্তবে আর ফেরে না। 🥀",
-    "সবাইকে সুখী করতে করতে আজ আমি নিজেই বড় একা হয়ে গেছি। হাজার মানুষের ভিড়েও মাঝেমধ্যে নিজেকে বড্ড নিসঙ্গ মনে হয়, যেন আমি এই পৃথিবীর কেউ না। 🌑",
-    "কিছু ভুল মানুষকে ভালোবেসে জীবনের সবচেয়ে বড় শিক্ষাটা পেয়েছি। এখন আর কাউকে বিশ্বাস করতে ইচ্ছে করে না, একলা আকাশটাই এখন আমার প্রিয় বন্ধু। 🕯️",
-    "অপেক্ষা করা সহজ, কিন্তু প্রিয় মানুষের অবহেলা সওয়াটা যে কতটা যন্ত্রণার সেটা কেবল সেই বোঝে যার ভালোবাসার মানুষটি তাকে অবজ্ঞার চোখে দেখে। ✨",
-    "হারিয়ে যাওয়া মানুষগুলো হয়তো ফিরে আসে, কিন্তু বদলে যাওয়া মানুষগুলো আর কখনোই আগের মতো হয়ে ফেরে না। জীবনটা বড় অদ্ভূত এক রঙ্গমঞ্চ! 🕊️",
-    "মাঝে মাঝে ইচ্ছে করে অনেক দূরে কোথাও হারিয়ে যাই, যেখানে কেউ আমাকে চিনবে না, কেউ আমার চোখের জলের কারণ জিজ্ঞেস করবে না। শুধু আমি আর আমার একাকীত্ব। 🌊"
-  ];
+    `✨ ────╼ ✡️ 𝐕𝟔𝟒-𝐏𝐑𝐎 ✡️ ╾──── ✨\n\n💎 𝐐𝐮𝐨𝐭𝐞: ${caption}\n\n⛅ 𝐑𝐨𝐮𝐦𝐚𝐫𝐢 𝐒𝐤𝐲: ${weather}\n⏰ 𝐋𝐢𝐯𝐞 𝐓𝐢𝐦𝐞: ${time}\n\n💠 ━━━━━━━━━━━━━━━━━━━ 💠\n🏔️ 𝐒𝐢𝐠𝐧: 𝐂𝐡𝐚𝐧𝐝𝐞𝐫 𝐏𝐚𝐡𝐚𝐫 🪬`,
 
-  const islamic = [
-    "নামাজ পড়ুন, কারণ কবরের অন্ধকারে আপনার এই ইবাদতই হবে আপনার একমাত্র সাথী। দুনিয়ার চাকচিক্য একদিন শেষ হয়ে যাবে, কিন্তু নেক আমল থেকে যাবে চিরকাল। 🕌",
-    "মালিকের দরবারে মাথা নত করুন, দেখবেন পৃথিবীর কারো কাছে আপনাকে মাথা নত করতে হবে না। সিজদাহ হলো বান্দার সবচেয়ে বড় প্রশান্তি। 📿",
-    "কুরআন তিলাওয়াতে হৃদয় শান্ত করুন। পৃথিবীর সব শব্দ আপনার কানে অশান্তি দিলেও আল্লাহর কালাম আপনার আত্মাকে তৃপ্ত করবে। 📖",
-    "যে ব্যক্তি আল্লাহর উপর ভরসা করে, আল্লাহ তার জন্য যথেষ্ট হয়ে যান। হতাশ হবেন না, নিশ্চয়ই কষ্টের সাথেই রয়েছে স্বস্তি। ✨",
-    "দুনিয়াটা হলো মুমিনের জন্য কারাগার আর কাফিরদের জন্য জান্নাত। আখেরাতের চিরস্থায়ী শান্তির জন্য দুনিয়ার সাময়িক কষ্টটুকু হাসিমুখে মেনে নিন। 🕋"
-  ];
+    `👑 ━━━『 𝐑𝐎𝐔𝐌𝐀𝐑𝐈 𝐄𝐃𝐈𝐓𝐈𝐎𝐍 』━━━ 👑\n\n🏮 "${caption}"\n\n💠 𝐋𝐢𝐯𝐞 𝐒𝐭𝐚𝐭𝐮𝐬:\n┏━━━━━━━━━━━━━━━━━━━┓\n┃ 🕒 𝐓𝐢𝐦𝐞: ${time}\n┃ 🌡️ 𝐖𝐞𝐚𝐭𝐡𝐞𝐫: ${weather}\n┃ 📅 𝐃𝐚𝐭𝐞: ${date}\n┗━━━━━━━━━━━━━━━━━━━┛\n┈──╼ ❈✡️চৃাঁদেৃঁরৃঁ পাৃঁহা্ঁড়ৃঁ🪬❈ ╾──┈`,
 
-  const combined = [...funny, ...sad, ...islamic];
-  return combined[Math.floor(Math.random() * combined.length)];
+    `🚀 𝐍𝐄𝐓𝐖𝐎𝐑𝐊 𝐎𝐌𝐍𝐈 𝐀𝐂𝐓𝐈𝐕𝐄 ⚡\n━━━━━━━━━━━━━━━━━━━━\n\n🎙️ 𝐂𝐚𝐩𝐭𝐢𝐨𝐧: ${caption}\n🌦️ 𝐖𝐞𝐚𝐭𝐡𝐞𝐫: ${weather} (রৌমারী)\n\n⌛ 𝐓𝐢𝐦𝐞: ${time}\n📆 𝐃𝐚𝐲: ${day}\n━━━━━━━━━━━━━━━━━━━━\n🏔️ 𝐒𝐢𝐠𝐧: 𝐂𝐡𝐚𝐧𝐝𝐞𝐫 𝐏𝐚𝐡𝐚𝐫 💠`,
+
+    `💖 ━┈ 🌸 𝐖𝐄𝐋𝐂𝐎𝐌𝐄 🌸 ┈━ 💖\n\n✨ "${caption}"\n\n🌡️ রৌমারীর তাপমাত্রা: ${weather}\n🕒 সময়: ${time} | 🗓️ ${day}\n📅 তারিখ: ${date}\n━━━━━━━━━━━━━━━━━━━━\n┈──╼ ❈✡️চৃাঁদেৃঁরৃঁ পাৃঁহা্ঁড়ৃঁ🪬❈ ╾──┈`
+  ];
+  return layouts[Math.floor(Math.random() * layouts.length)];
 };
 
 module.exports.onLoad = ({ api }) => {
   const rule = new schedule.RecurrenceRule();
   rule.tz = 'Asia/Dhaka';
-  rule.minute = 0; // প্রতি ঘণ্টার শুরুতে মেসেজ যাবে
+  rule.minute = 0; 
 
   schedule.scheduleJob(rule, async () => {
     try {
+      // ১. ক্যাপশন এপিআই
+      let caption = "Stay focused and never give up.";
+      try {
+        const res = await axios.get("https://api.popcat.xyz/quote");
+        caption = res.data.quote;
+      } catch (e) { console.log("Quote API Error"); }
+
+      // ২. রৌমারী আবহাওয়া এপিআই (Real-time)
+      let weatherInfo = "Data Unavailable";
+      try {
+        const weatherRes = await axios.get("https://api.weatherapi.com/v1/current.json?key=89345e656d78457790d130545231205&q=Roumari&aqi=no");
+        const temp = weatherRes.data.current.temp_c;
+        const condition = weatherRes.data.current.condition.text;
+        weatherInfo = `${temp}°C | ${condition}`;
+      } catch (e) { console.log("Weather API Error"); }
+      
       const now = moment().tz('Asia/Dhaka');
       const time = now.format('hh:mm A');
-      const date = now.format('DD MMM, YYYY');
+      const date = now.format('DD/MM/YYYY');
+      const day = now.format('dddd');
 
-      // ১. ডাইনামিক ইমোজি জেনারেটর (আনলিমিটেড আইকন)
-      const icons = ["🚀", "⚡", "🛸", "🔥", "⚙️", "📡", "💻", "🤖", "👑", "🔮", "🧿", "⌛", "🕰️", "📅", "🗝️", "⚔️", "🔱", "⚜️", "🔋", "💾"];
-      const getIcon = () => icons[Math.floor(Math.random() * icons.length)];
+      const finalMsg = getLayout(caption, time, date, day, weatherInfo);
 
-      // ২. সিস্টেম স্ট্যাটাস 
-      const megaCaption = getPremiumCaption();
-      const ramUsage = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1);
-      const ping = Math.floor(Math.random() * (120 - 30 + 1)) + 30; // Random ping generator for hacker vibe
-
-      // ✨ আল্ট্রা-প্রিমিয়াম সাইবার আর্কিটেকচার ডিজাইন
-      const msg = `╭┈────────── ${getIcon()} ──────────┈╮
-   ${getIcon()} 𝗠𝗔𝗦𝗧𝗘𝗥 𝗕𝗘𝗟𝗔𝗟 𝗡𝗘𝗧𝗪𝗢𝗥𝗞 ${getIcon()}
-╰┈────────── ${getIcon()} ──────────┈╯
-
-${getIcon()} 𝗦𝗬𝗦𝗧𝗘𝗠_𝗢𝗠𝗡𝗜_𝗩𝟲𝟭 : 𝗔𝗖𝗧𝗜𝗩𝗘 ⚡
-━━━━━━━━━━━━━━━━━━━━━━━
-🌸 𝗔𝘀𝘀𝗮𝗹𝗮𝗺𝘂𝗮𝗹𝗮𝗶𝗸𝘂𝗺 🌸
-
-${getIcon()} 𝗧𝗶𝗺𝗲: [ ${time} ]  
-${getIcon()} 𝗗𝗮𝘁𝗲: ${date} (${now.format('dddd')})
-
-┏━━━━ ${getIcon()}『 📜 𝗠𝗘𝗚𝗔_𝗖𝗔𝗣𝗧𝗜𝗢𝗡 』
-┃ "${megaCaption}"
-┗━━━━━━━━━━━━━━━━━━━━┈ ${getIcon()}
-
-┏━━━━ ${getIcon()}『 📊 𝗟𝗜𝗩𝗘_𝗗𝗔𝗦𝗛𝗕𝗢𝗔𝗥𝗗 』
-┃ 💠 𝗣𝗶𝗻𝗴  : ~${ping}ms
-┃ 💠 𝗥𝗔𝗠   : ${ramUsage}MB / 1024MB
-┃ 💠 𝗦𝘁𝗮𝘁𝘂𝘀: 𝗨𝗹𝘁𝗿𝗮_𝗣𝗿𝗲𝗺𝗶𝘂𝗺
-┗━━━━━━━━━━━━━━━━━━━━┈ ${getIcon()}
-
-┈───╼ ┄┉❈✡️⋆⃝চৃাঁদেৃঁরৃঁ পাৃঁহা্ঁড়ৃঁ✿⃝🪬 ╾───┈
-${getIcon()} "✡️☠️" ${getIcon()}`;
-
-      // সব থ্রেডে অটো মেসেজ সেন্ড
       const allThreads = global.data.allThreadID || [];
       for (const tID of allThreads) {
-        api.sendMessage(msg, tID);
-        await new Promise(r => setTimeout(r, 1500)); // স্প্যামিং রোধে ১.৫ সেকেন্ড গ্যাপ
+        api.sendMessage(finalMsg, tID);
+        await new Promise(r => setTimeout(r, 2000));
       }
     } catch (err) { console.log("Autosent Error:", err); }
   });
 };
 
 module.exports.run = async ({ api, event }) => {
-  return api.sendMessage("🤖 ৫০০+ মেগা ক্যাপশন ইঞ্জিন (V61) সক্রিয়! এখন প্রতি ঘণ্টায় অটোমেটিক প্রিমিয়াম মেসেজ যাবে।", event.threadID);
+  const sig = `\n━━━━━━━━━━━━━━━━━━━━\n🏔️ 𝐒𝐢𝐠𝐧: 𝐂𝐡𝐚𝐧𝐝𝐞𝐫 𝐏𝐚𝐡𝐚𝐫 🪬`;
+  return api.sendMessage(`✅ 𝐀𝐮𝐭𝐨𝐬𝐞𝐧𝐭 𝐕𝟔𝟒 (𝐑𝐨𝐮𝐦𝐚𝐫𝐢 𝐖𝐞𝐚𝐭𝐡𝐞𝐫 𝐄𝐝𝐢𝐭𝐢𝐨𝐧) সক্রিয়!\n📍 কুড়িগ্রাম রৌমারীর লাইভ আবহাওয়াসহ প্রতি ঘন্টায় মেসেজ যাবে।${sig}`, event.threadID);
 };
+      
