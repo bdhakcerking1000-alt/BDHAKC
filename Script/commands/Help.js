@@ -5,10 +5,10 @@ const moment = require("moment-timezone");
 
 module.exports.config = {
     name: "help",
-    version: "10.0.0",
+    version: "11.0.0",
     hasPermssion: 0,
     credits: "Belal x Gemini",
-    description: "Premium Interactive Cyber-Neon Help Dashboard",
+    description: "Premium Cinema-Style Interactive Dashboard",
     commandCategory: "system",
     usages: "[Command Name]",
     cooldowns: 5
@@ -19,37 +19,36 @@ module.exports.run = async function ({ api, event, args }) {
     const { threadID, messageID } = event;
     const prefix = global.config.PREFIX;
     
-    // রিয়েল টাইম ডাটা
     const time = moment.tz("Asia/Dhaka").format("hh:mm A");
     const date = moment.tz("Asia/Dhaka").format("DD/MM/YYYY");
     const myFB = "https://www.facebook.com/profile.php?id=61577502464880";
     const sig = "┈───╼ ┄┉❈✡️⋆⃝চৃাঁদেৃঁরৃঁ পাৃঁহা্ঁড়ৃঁ✿⃝🪬 ╾───┈";
     
-    // প্রিমিয়াম সাইবারবোর্ড ইমেজ (প্রতিবার র্যান্ডমলি আসবে)
+    // হাই-ডেফিনিশন সাইবার এনিমেশন ইমেজ
     const helpImages = [
-        "https://i.imgur.com/vHq0L9j.jpeg",
         "https://i.imgur.com/uN2tK9Q.jpeg",
-        "https://i.imgur.com/YmKByaI.jpeg"
+        "https://i.imgur.com/vHq0L9j.jpeg",
+        "https://i.imgur.com/YmKByaI.jpeg",
+        "https://i.imgur.com/6b6DGcW.jpeg"
     ];
 
     const randomUrl = helpImages[Math.floor(Math.random() * helpImages.length)];
-    const cacheDir = path.join(process.cwd(), "cache");
-    const cachePath = path.join(cacheDir, `help_v10_${Date.now()}.jpg`);
+    const cachePath = path.join(process.cwd(), "cache", `help_v11_${Date.now()}.jpg`);
 
-    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+    if (!fs.existsSync(path.join(process.cwd(), "cache"))) fs.mkdirSync(path.join(process.cwd(), "cache"), { recursive: true });
 
-    // ১. স্পেসিফিক কমান্ড এর জন্য সাইবার ডিটেইলস
+    // ১. স্পেসিফিক কমান্ড ডিটেইলস (Ultra Premium Look)
     if (args[0] && commands.has(args[0].toLowerCase())) {
         const cmd = commands.get(args[0].toLowerCase()).config;
-        const detailMsg = `💠 ━━━━『 𝐂𝐎𝐌𝐌𝐀𝐍𝐃 𝐈𝐍𝐅𝐎 』━━━━ 💠
+        const detailMsg = `🔰 ━━━━『 𝐂𝐎𝐌𝐌𝐀𝐍𝐃 𝐃𝐄𝐓𝐀𝐈𝐋𝐒 』━━━━ 🔰
 ━━━━━━━━━━━━━━━━━━━━━━━
 
   🚀 𝗡𝗮𝗺𝗲 : ${cmd.name.toUpperCase()}
-  📁 𝗧𝘆𝗽𝗲 : ${cmd.commandCategory.toUpperCase()}
+  📂 𝗖𝗮𝘁𝗲𝗴𝗼𝗿𝘆 : ${cmd.commandCategory.toUpperCase()}
   📝 𝗜𝗻𝗳𝗼 : ${cmd.description}
   🛠️ 𝗨𝘀𝗮𝗴𝗲 : ${prefix}${cmd.name} ${cmd.usages}
   ⏳ 𝗪𝗮𝗶𝘁 : ${cmd.cooldowns} সেকেন্ড
-  🔰 𝗥𝗼𝗹𝗲 : ${cmd.hasPermssion == 0 ? "সাধারণ ইউজার" : "শুধুমাত্র এডমিন"}
+  👤 𝗥𝗼𝗹𝗲 : ${cmd.hasPermssion == 0 ? "Everyone" : "Admin Only"}
 
 ━━━━━━━━━━━━━━━━━━━━━━━
   👑 𝐎𝐰𝐧𝐞𝐫 : 𝐁𝐄𝐋𝐀𝐋 (𝐕𝐞𝐫𝐢𝐟𝐢𝐞𝐝)
@@ -59,13 +58,11 @@ module.exports.run = async function ({ api, event, args }) {
         try {
             const res = await axios.get(randomUrl, { responseType: "arraybuffer" });
             fs.writeFileSync(cachePath, Buffer.from(res.data));
-            return api.sendMessage({ body: detailMsg, attachment: fs.createReadStream(cachePath) }, threadID, () => {
-                if (fs.existsSync(cachePath)) fs.unlinkSync(cachePath);
-            }, messageID);
+            return api.sendMessage({ body: detailMsg, attachment: fs.createReadStream(cachePath) }, threadID, () => fs.unlinkSync(cachePath), messageID);
         } catch (e) { return api.sendMessage(detailMsg, threadID, messageID); }
     }
 
-    // ২. মেইন হেল্প মেনু (স্মার্ট লিস্ট সিস্টেম)
+    // ২. মেইন হেল্প মেনু (প্রতিটি কমান্ড আলাদা বক্সে - Cinema Layout)
     const categories = {};
     for (let [name, value] of commands) {
         const cat = value.config.commandCategory || "General";
@@ -73,26 +70,36 @@ module.exports.run = async function ({ api, event, args }) {
         categories[cat].push(name);
     }
 
-    let helpMsg = `🌐 ━━━━『 𝐌𝐀𝐒𝐓𝐄𝐑 𝐁𝐄𝐋𝐀𝐋 𝐍𝐄𝐓𝐖𝐎𝐑𝐊 』━━━━ 🌐\n━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    const icons = ["⚡", "🛰️", "🛸", "💎", "🔥", "☄️", "🛡️", "🧬", "⚙️", "🔋", "📡", "👾", "🤖", "👑", "🔮", "🧿", "⚔️", "🔱"];
+    const getIcon = () => icons[Math.floor(Math.random() * icons.length)];
 
-    let count = 1;
+    let helpMsg = `🎬 ━━━━『 𝐁𝐄𝐋𝐀𝐋 𝐂𝐈𝐍𝐄𝐌𝐀 𝐁𝐎𝐀𝐑𝐃 』━━━━ 🎬\n━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
     for (const category in categories) {
-        helpMsg += `┏━━━━ 『 ${count++}. ${category.toUpperCase()} 』\n`;
-        helpMsg += `┃ 💠 ${categories[category].sort().join(" • ")}\n┗━━━━━━━━━━━━━━━━━━━━┈ ✨\n\n`;
+        const catIcon = getIcon();
+        helpMsg += `┏━━━━━━『 ${catIcon} ${category.toUpperCase()} ${catIcon} 』\n`;
+        
+        // প্রতিটি কমান্ড আলাদা আলাদা বক্সে সাজানো হচ্ছে
+        const sortedCmds = categories[category].sort();
+        sortedCmds.forEach(cmd => {
+            helpMsg += `┃ ❯ ${getIcon()} ${cmd.padEnd(15)}\n`;
+        });
+        
+        helpMsg += `┗━━━━━━━━━━━━━━━━━━━━┈ ✨\n\n`;
     }
 
-    helpMsg += `📊 ━━━━ 『 𝐒𝐘𝐒𝐓𝐄𝐌 𝐒𝐓𝐀𝐓𝐒 』 ━━━━ 📊
+    helpMsg += `📊 ━━━『 𝐒𝐘𝐒𝐓𝐄𝐌 𝐃𝐀𝐒𝐇𝐁𝐎𝐀𝐑𝐃 』━━━ 📊
   
-  🛰️ মোট কমান্ড  : ${commands.size} টি
-  🔰 বর্তমান প্রিক্স : [ ${prefix} ]
-  ⏰ বর্তমান সময়  : ${time}
-  📅 বর্তমান তারিখ : ${date}
+  🛰️ Total Commands : ${commands.size}
+  🔰 Prefix Status : [ ${prefix} ]
+  ⏰ Live Time : ${time}
+  📅 Date Today : ${date}
 
-  👑 এডমিন : 𝐁𝐄𝐋𝐀𝐋
-  🔗 এফবি : ${myFB}
+  👑 Master Admin : 𝐁𝐄𝐋𝐀𝐋 (𝐕𝐈𝐏)
+  🔗 FB : ${myFB}
 
-💡 টিপস: ${prefix}help [কমান্ড নাম] বিস্তারিত জানতে।
-${sig}`;
+  ${sig}
+  ✨ "Your imagination is our Reality." ✨`;
 
     try {
         const res = await axios.get(randomUrl, { responseType: "arraybuffer" });
@@ -100,11 +107,8 @@ ${sig}`;
         api.sendMessage({ 
             body: helpMsg, 
             attachment: fs.createReadStream(cachePath) 
-        }, threadID, () => {
-            if (fs.existsSync(cachePath)) fs.unlinkSync(cachePath);
-        }, messageID);
+        }, threadID, () => fs.unlinkSync(cachePath), messageID);
     } catch (e) {
         api.sendMessage(helpMsg, threadID, messageID);
     }
 };
-    
