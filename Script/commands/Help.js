@@ -1,114 +1,153 @@
 const fs = require("fs-extra");
-const axios = require("axios");
+const request = require("request");
 const path = require("path");
-const moment = require("moment-timezone");
 
 module.exports.config = {
     name: "help",
-    version: "11.0.0",
+    version: "2.0.0",
     hasPermssion: 0,
-    credits: "Belal x Gemini",
-    description: "Premium Cinema-Style Interactive Dashboard",
+    credits: "BELAL BOTX666",
+    description: "Shows all commands with details",
     commandCategory: "system",
-    usages: "[Command Name]",
-    cooldowns: 5
+    usages: "[command name/page number]",
+    cooldowns: 5,
+    envConfig: {
+        autoUnsend: true,
+        delayUnsend: 20
+    }
 };
 
-module.exports.run = async function ({ api, event, args }) {
+module.exports.languages = {
+    "en": {
+        "moduleInfo": `╭━━━━━━━━━━━━━━━━╮
+┃ ✨ 𝐂𝐎𝐌𝐌𝐀𝐍𝐃 𝐈𝐍𝐅𝐎 ✨
+┣━━━━━━━━━━━┫
+┃ 🔖 Name: %1
+┃ 📄 Usage: %2
+┃ 📜 Description: %3
+┃ 🔑 Permission: %4
+┃ 👨‍💻 Credit: %5
+┃ 📂 Category: %6
+┃ ⏳ Cooldown: %7s
+┣━━━━━━━━━━━━━━━━┫
+┃ ⚙ Prefix: %8
+┃ 🤖 Bot Name: %9
+┃ 👑 Owner: ┄┉❈✡️⋆⃝চাঁদেড়~পাহাড়✿⃝🪬❈┉┄
+╰━━━━━━━━━━━━━━━━╯`,
+        "helpList": "[ There are %1 commands. Use: \"%2help commandName\" to view more. ]",
+        "user": "User",
+        "adminGroup": "Admin Group",
+        "adminBot": "Admin Bot"
+    }
+};
+
+// 🔹 এখানে আপনার ফটো Imgur লিংক করে বসাবেন ✅
+const helpImages = [
+    "https://i.imgur.com/CY5sgsk.jpeg"
+];
+
+
+function downloadImages(callback) {
+    const randomUrl = helpImages[Math.floor(Math.random() * helpImages.length)];
+    const filePath = path.join(__dirname, "cache", "help_random.jpg");
+
+    request(randomUrl)
+        .pipe(fs.createWriteStream(filePath))
+        .on("close", () => callback([filePath]));
+}
+
+module.exports.handleEvent = function ({ api, event, getText }) {
+    const { commands } = global.client;
+    const { threadID, messageID, body } = event;
+
+    if (!body || typeof body === "undefined" || body.indexOf("help") != 0) return;  
+    const splitBody = body.slice(body.indexOf("help")).trim().split(/\s+/);  
+    if (splitBody.length < 2 || !commands.has(splitBody[1].toLowerCase())) return;  
+
+    const threadSetting = global.data.threadData.get(parseInt(threadID)) || {};  
+    const command = commands.get(splitBody[1].toLowerCase());  
+    const prefix = threadSetting.PREFIX || global.config.PREFIX;  
+
+    const detail = getText("moduleInfo",  
+        command.config.name,  
+        command.config.usages || "Not Provided",  
+        command.config.description || "Not Provided",  
+        command.config.hasPermssion,  
+        command.config.credits || "Unknown",  
+        command.config.commandCategory || "Unknown",  
+        command.config.cooldowns || 0,  
+        prefix,  
+        global.config.BOTNAME || "BELAL BOTX666"  
+    );  
+
+    downloadImages(files => {  
+        const attachments = files.map(f => fs.createReadStream(f));  
+        api.sendMessage({ body: detail, attachment: attachments }, threadID, () => {  
+            files.forEach(f => fs.unlinkSync(f));  
+        }, messageID);  
+    });
+};
+
+module.exports.run = function ({ api, event, args, getText }) {
     const { commands } = global.client;
     const { threadID, messageID } = event;
-    const prefix = global.config.PREFIX;
-    
-    const time = moment.tz("Asia/Dhaka").format("hh:mm A");
-    const date = moment.tz("Asia/Dhaka").format("DD/MM/YYYY");
-    const myFB = "https://www.facebook.com/profile.php?id=61577502464880";
-    const sig = "┈───╼ ┄┉❈✡️⋆⃝চৃাঁদেৃঁরৃঁ পাৃঁহা্ঁড়ৃঁ✿⃝🪬 ╾───┈";
-    
-    // হাই-ডেফিনিশন সাইবার এনিমেশন ইমেজ
-    const helpImages = [
-        "https://i.imgur.com/uN2tK9Q.jpeg",
-        "https://i.imgur.com/vHq0L9j.jpeg",
-        "https://i.imgur.com/YmKByaI.jpeg",
-        "https://i.imgur.com/6b6DGcW.jpeg"
-    ];
 
-    const randomUrl = helpImages[Math.floor(Math.random() * helpImages.length)];
-    const cachePath = path.join(process.cwd(), "cache", `help_v11_${Date.now()}.jpg`);
+    const threadSetting = global.data.threadData.get(parseInt(threadID)) || {};  
+    const prefix = threadSetting.PREFIX || global.config.PREFIX;  
 
-    if (!fs.existsSync(path.join(process.cwd(), "cache"))) fs.mkdirSync(path.join(process.cwd(), "cache"), { recursive: true });
+    if (args[0] && commands.has(args[0].toLowerCase())) {  
+        const command = commands.get(args[0].toLowerCase());  
 
-    // ১. স্পেসিফিক কমান্ড ডিটেইলস (Ultra Premium Look)
-    if (args[0] && commands.has(args[0].toLowerCase())) {
-        const cmd = commands.get(args[0].toLowerCase()).config;
-        const detailMsg = `🔰 ━━━━『 𝐂𝐎𝐌𝐌𝐀𝐍𝐃 𝐃𝐄𝐓𝐀𝐈𝐋𝐒 』━━━━ 🔰
-━━━━━━━━━━━━━━━━━━━━━━━
+        const detailText = getText("moduleInfo",  
+            command.config.name,  
+            command.config.usages || "Not Provided",  
+            command.config.description || "Not Provided",  
+            command.config.hasPermssion,  
+            command.config.credits || "Unknown",  
+            command.config.commandCategory || "Unknown",  
+            command.config.cooldowns || 0,  
+            prefix,  
+            global.config.BOTNAME || "✦───꯭─⃝‌‌𝔹𝔼𝕃𝔸𝕃 𝔹𝕆𝕋 ✡️──✦"  
+        );  
 
-  🚀 𝗡𝗮𝗺𝗲 : ${cmd.name.toUpperCase()}
-  📂 𝗖𝗮𝘁𝗲𝗴𝗼𝗿𝘆 : ${cmd.commandCategory.toUpperCase()}
-  📝 𝗜𝗻𝗳𝗼 : ${cmd.description}
-  🛠️ 𝗨𝘀𝗮𝗴𝗲 : ${prefix}${cmd.name} ${cmd.usages}
-  ⏳ 𝗪𝗮𝗶𝘁 : ${cmd.cooldowns} সেকেন্ড
-  👤 𝗥𝗼𝗹𝗲 : ${cmd.hasPermssion == 0 ? "Everyone" : "Admin Only"}
+        downloadImages(files => {  
+            const attachments = files.map(f => fs.createReadStream(f));  
+            api.sendMessage({ body: detailText, attachment: attachments }, threadID, () => {  
+                files.forEach(f => fs.unlinkSync(f));  
+            }, messageID);  
+        });  
+        return;  
+    }  
 
-━━━━━━━━━━━━━━━━━━━━━━━
-  👑 𝐎𝐰𝐧𝐞𝐫 : 𝐁𝐄𝐋𝐀𝐋 (𝐕𝐞𝐫𝐢𝐟𝐢𝐞𝐝)
-  ⏰ 𝐓𝐢𝐦𝐞 : ${time}
-  ${sig}`;
+    const arrayInfo = Array.from(commands.keys())
+        .filter(cmdName => cmdName && cmdName.trim() !== "")
+        .sort();  
 
-        try {
-            const res = await axios.get(randomUrl, { responseType: "arraybuffer" });
-            fs.writeFileSync(cachePath, Buffer.from(res.data));
-            return api.sendMessage({ body: detailMsg, attachment: fs.createReadStream(cachePath) }, threadID, () => fs.unlinkSync(cachePath), messageID);
-        } catch (e) { return api.sendMessage(detailMsg, threadID, messageID); }
-    }
+    const page = Math.max(parseInt(args[0]) || 1, 1);  
+    const numberOfOnePage = 20;  
+    const totalPages = Math.ceil(arrayInfo.length / numberOfOnePage);  
+    const start = numberOfOnePage * (page - 1);  
+    const helpView = arrayInfo.slice(start, start + numberOfOnePage);  
 
-    // ২. মেইন হেল্প মেনু (প্রতিটি কমান্ড আলাদা বক্সে - Cinema Layout)
-    const categories = {};
-    for (let [name, value] of commands) {
-        const cat = value.config.commandCategory || "General";
-        if (!categories[cat]) categories[cat] = [];
-        categories[cat].push(name);
-    }
+    let msg = helpView.map(cmdName => `┃ ✪ ${cmdName}`).join("\n");
 
-    const icons = ["⚡", "🛰️", "🛸", "💎", "🔥", "☄️", "🛡️", "🧬", "⚙️", "🔋", "📡", "👾", "🤖", "👑", "🔮", "🧿", "⚔️", "🔱"];
-    const getIcon = () => icons[Math.floor(Math.random() * icons.length)];
+    const text = `╭━━━━━━━━━━━━━━━━╮
+┃ 📜 𝐂𝐎𝐌𝐌𝐀𝐍𝐃 𝐋𝐈𝐒𝐓 📜
+┣━━━━━━━━━━━━━━━┫
+┃ 📄 Page: ${page}/${totalPages}
+┃ 🧮 Total: ${arrayInfo.length}
+┣━━━━━━━━━━━━━━━━┫
+${msg}
+┣━━━━━━━━━━━━━━━━┫
+┃ ⚙ Prefix: ${prefix}
+┃ 🤖 Bot Name: ${global.config.BOTNAME || "BELAL BOTX666"}
+┃ 👑 Owner:┄┉❈✡️⋆⃝চাঁদেড়~পাহাড়✿⃝🪬❈┉┄
+╰━━━━━━━━━━━━━━━━╯`;
 
-    let helpMsg = `🎬 ━━━━『 𝐁𝐄𝐋𝐀𝐋 𝐂𝐈𝐍𝐄𝐌𝐀 𝐁𝐎𝐀𝐑𝐃 』━━━━ 🎬\n━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-
-    for (const category in categories) {
-        const catIcon = getIcon();
-        helpMsg += `┏━━━━━━『 ${catIcon} ${category.toUpperCase()} ${catIcon} 』\n`;
-        
-        // প্রতিটি কমান্ড আলাদা আলাদা বক্সে সাজানো হচ্ছে
-        const sortedCmds = categories[category].sort();
-        sortedCmds.forEach(cmd => {
-            helpMsg += `┃ ❯ ${getIcon()} ${cmd.padEnd(15)}\n`;
-        });
-        
-        helpMsg += `┗━━━━━━━━━━━━━━━━━━━━┈ ✨\n\n`;
-    }
-
-    helpMsg += `📊 ━━━『 𝐒𝐘𝐒𝐓𝐄𝐌 𝐃𝐀𝐒𝐇𝐁𝐎𝐀𝐑𝐃 』━━━ 📊
-  
-  🛰️ Total Commands : ${commands.size}
-  🔰 Prefix Status : [ ${prefix} ]
-  ⏰ Live Time : ${time}
-  📅 Date Today : ${date}
-
-  👑 Master Admin : 𝐁𝐄𝐋𝐀𝐋 (𝐕𝐈𝐏)
-  🔗 FB : ${myFB}
-
-  ${sig}
-  ✨ "Your imagination is our Reality." ✨`;
-
-    try {
-        const res = await axios.get(randomUrl, { responseType: "arraybuffer" });
-        fs.writeFileSync(cachePath, Buffer.from(res.data));
-        api.sendMessage({ 
-            body: helpMsg, 
-            attachment: fs.createReadStream(cachePath) 
-        }, threadID, () => fs.unlinkSync(cachePath), messageID);
-    } catch (e) {
-        api.sendMessage(helpMsg, threadID, messageID);
-    }
+    downloadImages(files => {  
+        const attachments = files.map(f => fs.createReadStream(f));  
+        api.sendMessage({ body: text, attachment: attachments }, threadID, () => {  
+            files.forEach(f => fs.unlinkSync(f));  
+        }, messageID);  
+    });  
 };
