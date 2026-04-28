@@ -1,92 +1,56 @@
 const fs = require("fs-extra");
-const axios = require("axios");
-const path = require("path");
-const moment = require("moment-timezone");
+const request = require("request");
 
 module.exports.config = {
-    name: "helpall",
-    version: "12.0.0",
-    hasPermssion: 0,
-    credits: "Belal x Gemini",
-    description: "Ultra VIP Interactive Dashboard with Dynamic Emoji Engine",
-    commandCategory: "system",
-    usages: "",
-    cooldowns: 5
+ name: "help all",
+ version: "1.0.0",
+ hasPermssion: 0,
+ credits: "𝐒𝐡𝐚𝐡𝐚𝐝𝐚𝐭 𝐒𝐀𝐇𝐔",
+ description: "Displays all available commands in one page",
+ commandCategory: "system",
+ usages: "[No args]",
+ cooldowns: 5
 };
 
 module.exports.run = async function ({ api, event }) {
-    const { commands } = global.client;
-    const { threadID, messageID } = event;
-    const time = moment.tz("Asia/Dhaka").format("hh:mm A");
-    const myFB = "https://www.facebook.com/profile.php?id=61577502464880";
-    const sig = "┈───╼ ┄┉❈✡️⋆⃝চৃাঁদেৃঁরৃঁ পাৃঁহা্্ড়ৃঁ✿⃝🪬 ╾───┈";
+ const { commands } = global.client;
+ const { threadID, messageID } = event;
 
-    // কিবোর্ডের সব ধরণের ইউনিক ইমোজি পুল (৫০০+ ইমোজি মিক্স)
-    const emojiPool = [
-        "🪬", "👑", "💎", "🔱", "⚜️", "⚡", "🌌", "🦾", "🧬", "🚀", "🛰️", "🛸", "📡", "🧿", "🔮", "⚔️", "🔥", "💎", "☄️", "🛡️", "🧬", "🧪", "⚙️", "🔋", "💻", "🎮", "👾", "🤖", "👔", "👒", "🎩", "🥽", "🎒", "🧳", "🧣", "🩹", "🩺", "🧪", "🧬", "🪜", "⚖️", "⚙️", "🪚", "🪛", "⛓️", "🔭", "🔬", "🔋", "📻", "🎙️", "🎛️", "⏱️", "⌛", "🕰️", "🪙", "💳", "📜", "📂", "📊", "📈", "📉", "📁", "📅", "📍", "🗝️", "🔨", "⚒️", "🔫", "🗡️", "🏹", "🚬", "💣", "🧨", "🩺", "🪓", "⚔️", "🔱", "⚜️", "🚩", "🏴", "🏳️", "⚧", "🌀", "💠", "☯️", "🛐", "☢️", "☣️", "⚛️", "🕉️", "✡️", "☸️", "☯️", "✝️", "☦️", "☪️", "☮️", "🕎", "🔯"
-    ];
+ const allCommands = [];
 
-    const getRandEmoji = () => emojiPool[Math.floor(Math.random() * emojiPool.length)];
+ for (let [name] of commands) {
+ if (name && name.trim() !== "") {
+ allCommands.push(name.trim());
+ }
+ }
 
-    const categories = {};
-    for (let [name, value] of commands) {
-        const cat = value.config.commandCategory || "GENERAL";
-        if (!categories[cat]) categories[cat] = [];
-        categories[cat].push(name);
-    }
+ allCommands.sort();
 
-    let helpMsg = `🌐 ━━━『 𝐕𝐈𝐏 𝐈𝐍𝐅𝐈𝐍𝐈𝐓𝐘 𝐍𝐄𝐓𝐖𝐎𝐑𝐊 』━━━ 🌐\n━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+ const finalText = `╔═══❖ 🌟 𝐂𝐎𝐌𝐌𝐀𝐍𝐃 𝐋𝐈𝐒𝐓 🌟 ❖═══╗
+${allCommands.map(cmd => `║ ➔ ${cmd}`).join("\n")}
+╠═════🔰 𝐁𝐎𝐓 𝐈𝐍𝐅𝐎 🔰═════╣
+║ 🤖 𝐁𝐨𝐭: 𒀱⃝⃞⃟✡️🅱🅴🅻🅰🅻 🅱🅾🆃❤⃝⃞⃟𒀱ꪳ
+║ 👑 𝐎𝐰𝐧𝐞𝐫:┄┉❈✡️⋆⃝ চাঁদেড়~পাহাড়✿⃝🪬❈┉┄
+║ 📦 𝐂𝐨𝐦𝐦𝐚𝐧𝐝𝐬: ${allCommands.length} 
+╚═══════════════════════╝`;
 
-    for (const category in categories) {
-        const headEmoji = getRandEmoji();
-        helpMsg += `┏━━━━ 『 ${headEmoji} ${category.toUpperCase()} ${headEmoji} 』\n`;
-        
-        // প্রতিটি কমান্ড আলাদা লাইনে এবং আলাদা আলাদা ইউনিক ইমোজি দিয়ে সাজানো
-        const sortedCmds = categories[category].sort();
-        sortedCmds.forEach(cmd => {
-            helpMsg += `┃ ${getRandEmoji()} ❯ ${cmd}\n`;
-        });
-        
-        helpMsg += `┗━━━━━━━━━━━━━━━━━━━━┈ ✨\n\n`;
-    }
+ 
+ const backgrounds = [
+ "https://i.imgur.com/CY5sgsk.jpeg",
+ "https://i.imgur.com/mkYGNNk.jpeg",
+ "https://i.imgur.com/gF5wIwg.jpeg",
+ "https://i.imgur.com/UAmIDz2.jpeg",
+ "https://i.imgur.com/6b6DGcW.jpeg",
+ "https://i.imgur.com/FQQq8WH.jpeg",
+ "https://i.imgur.com/uEPmaG5.jpeg"
+ ];
+ const selectedBg = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+ const imgPath = __dirname + "/cache/helpallbg.jpg";
 
-    helpMsg += `📊 ━━━『 𝐕𝐈𝐏 𝐒𝐘𝐒𝐓𝐄𝐌 𝐒𝐓𝐀𝐓𝐒 』━━━ 📊
-  
-  🛰️ 𝗧𝗼𝘁𝗮𝗹 𝗖𝗼𝗺𝗺𝗮𝗻𝗱𝘀 : ${commands.size} 
-  🛡️ 𝗦𝗲𝗰𝘂𝗿𝗶𝘁𝘆 𝗟𝗲𝘃𝗲𝗹 : 𝐈𝐧𝐟𝐢𝐧𝐢𝐭𝐲 (𝐕𝐈𝐏)
-  ⏰ 𝗨𝗽𝗱𝗮𝘁𝗲դ 𝗔𝘁    : ${time}
-  
-  👑 𝐎𝐰𝐧𝐞𝐫 : 𝐁𝐄𝐋𝐀𝐋 (𝐕𝐞𝐫𝐢𝐟𝐢𝐞𝐝)
-  🔗 𝐅𝐁 𝐈𝐃 : ${myFB}
+ const callback = () =>
+ api.sendMessage({ body: finalText, attachment: fs.createReadStream(imgPath) }, threadID, () => fs.unlinkSync(imgPath), messageID);
 
-  ${sig}
-  ✨ "Infinity is not a limit, it's a Status." ✨`;
-
-    // হাই-কোয়ালিটি ডার্ক ভিআইপি ইমেজ পুল
-    const vipImages = [
-        "https://i.imgur.com/YmKByaI.jpeg",
-        "https://i.imgur.com/uN2tK9Q.jpeg",
-        "https://i.imgur.com/vHq0L9j.jpeg",
-        "https://i.imgur.com/6b6DGcW.jpeg"
-    ];
-    
-    const selectedImg = vipImages[Math.floor(Math.random() * vipImages.length)];
-    const cacheDir = path.join(process.cwd(), "cache");
-    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
-    const imgPath = path.join(cacheDir, `ultra_vip_help_${Date.now()}.jpg`);
-
-    try {
-        const res = await axios.get(selectedImg, { responseType: "arraybuffer" });
-        await fs.writeFile(imgPath, Buffer.from(res.data));
-
-        return api.sendMessage({ 
-            body: helpMsg, 
-            attachment: fs.createReadStream(imgPath) 
-        }, threadID, () => {
-            if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
-        }, messageID);
-    } catch (e) {
-        // যদি ইমেজ সার্ভারে সমস্যা থাকে তবে শুধু টেক্সট পাঠাবে যাতে কমান্ড ফেইল না হয়
-        return api.sendMessage(helpMsg, threadID, messageID);
-    }
+ request(encodeURI(selectedBg))
+ .pipe(fs.createWriteStream(imgPath))
+ .on("close", () => callback());
 };
